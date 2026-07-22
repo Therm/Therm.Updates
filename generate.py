@@ -13,6 +13,7 @@ Each entry is a markdown file with YAML-ish front-matter:
 Stdlib only — no dependencies.
 """
 import re
+import shutil
 from datetime import datetime, timezone
 from email.utils import format_datetime
 from html import escape
@@ -20,7 +21,12 @@ from pathlib import Path
 
 ROOT = Path(__file__).parent
 OUT = ROOT / "site"
+STATIC = ROOT / "static"
 BASE_URL = "https://updates.therm.energy"
+RSS_ICON = (
+    f"<img class=\"rssicon\" src=\"{BASE_URL}/rss.svg\" alt=\"\" "
+    "width=\"17\" height=\"17\">"
+)
 
 STREAMS = {
     "releases": {
@@ -115,6 +121,7 @@ p { margin: .35rem 0; }
 .entry, .stream { padding: 1.1rem 0; border-bottom: 1px solid var(--rule); }
 .date { font-size: .85rem; color: var(--muted); }
 .feed { font-size: .85rem; }
+.rssicon { width: 1em; height: 1em; vertical-align: -0.12em; margin-right: .3em; }
 footer { margin-top: 2.5rem; font-size: .85rem; color: var(--muted); }
 """
 
@@ -153,6 +160,10 @@ def entry_html(e):
 def build():
     all_entries = []
     (OUT).mkdir(exist_ok=True)
+    if STATIC.is_dir():
+        for asset in STATIC.iterdir():
+            if asset.is_file():
+                shutil.copy(asset, OUT / asset.name)
 
     for name, cfg in STREAMS.items():
         entries = load_stream(name)
@@ -177,7 +188,7 @@ def build():
             f"<p class=\"feed\"><a href=\"{BASE_URL}/\">Therm Updates</a> / {escape(cfg['title'])}</p>\n"
             f"<h1>{escape(cfg['title'])}</h1>\n"
             f"<p class=\"muted\">{escape(cfg['blurb'])}</p>\n"
-            f"<p class=\"feed\">Subscribe: <a href=\"{stream_url}rss.xml\">RSS feed</a></p>\n"
+            f"<p class=\"feed\">Subscribe: <a href=\"{stream_url}rss.xml\">{RSS_ICON}RSS feed</a></p>\n"
             f"{listing}"
         )
         (out / "index.html").write_text(page(feed_title, alternate, body), encoding="utf-8")
@@ -193,7 +204,7 @@ def build():
         "<div class=\"stream\">\n"
         f"  <h2><a href=\"{BASE_URL}/{name}/\">{escape(cfg['title'])}</a></h2>\n"
         f"  <p class=\"muted\">{escape(cfg['blurb'])}</p>\n"
-        f"  <p class=\"feed\"><a href=\"{BASE_URL}/{name}/rss.xml\">RSS feed</a></p>\n"
+        f"  <p class=\"feed\"><a href=\"{BASE_URL}/{name}/rss.xml\">{RSS_ICON}RSS feed</a></p>\n"
         "</div>"
         for name, cfg in STREAMS.items()
     )
